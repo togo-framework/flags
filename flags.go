@@ -52,6 +52,7 @@ type Service struct {
 	mu    sync.RWMutex
 	flags map[string]*Flag
 	evals map[string]map[string]int64 // key -> result -> count
+	store Store // optional durable backing (write-through)
 }
 
 func init() {
@@ -88,6 +89,9 @@ func (s *Service) Set(f Flag) {
 	}
 	s.mu.Lock()
 	s.flags[f.Key] = &f
+	if s.store != nil {
+		s.store.Save(f)
+	}
 	s.mu.Unlock()
 }
 
@@ -118,6 +122,9 @@ func (s *Service) All() []Flag {
 func (s *Service) Delete(key string) {
 	s.mu.Lock()
 	delete(s.flags, key)
+	if s.store != nil {
+		s.store.Delete(key)
+	}
 	s.mu.Unlock()
 }
 
